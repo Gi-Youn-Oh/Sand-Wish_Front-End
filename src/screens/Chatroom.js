@@ -25,6 +25,8 @@ import {
   CollectionCircle,
   ChartButton,
   ChartItemBox,
+  EditIcon,
+  AddButton,
 } from '../components/ChatRoom';
 import Feather from 'react-native-vector-icons/Feather';
 import Ionic from 'react-native-vector-icons/Ionicons';
@@ -227,13 +229,23 @@ const ChartModalView = styled.View`
   border-radius: 20px;
   flex: 1;
   margin-top: 0;
+  padding-top: 30%;
+`;
+
+const ImageModalView = styled.View`
+  width: 100%;
+  background-color: ${({theme}) => theme.mainBackground};
+  justify-content: flex-start;
+  align-items: flex-start;
 `;
 
 const ChartImage = styled.Image`
-  margin-top: 30%;
+  margin-top: 10%;
   width: 100%;
   height: 5%;
   color: ${({theme}) => theme.tintColorGreen};
+  align-items: flex-end;
+  justify-content: flex-end;
 `;
 
 const FriendContainer = styled.View`
@@ -323,8 +335,10 @@ const ChatRoom = ({navigation, route}) => {
   const [chartModal, setChartModal] = useState(false);
   const [dataChart, setDataChart] = useState([]);
   const [chartItems, setChartItems] = useState([]);
-
+  const [addToShareCollection, setAddToShareCollection] = useState([]);
   const length = 350;
+  const [isShareCollectionEditing, setIsShareCollectionEditing] =
+    useState(false);
 
   const _connect = roomId => {
     client.current = new Client({
@@ -458,13 +472,12 @@ const ChatRoom = ({navigation, route}) => {
             tempArray.push(tempObject);
             setChatList(tempArray);
           }
-          // console.log('data : ', data);
+          console.log('data :ddd ', data);
         });
     } catch (e) {
       console.log(e);
     }
   };
-
 
   const _pressFilter = () => {
     isSorted ? setIsSorted(false) : setIsSorted(true);
@@ -515,6 +528,76 @@ const ChatRoom = ({navigation, route}) => {
         });
     } catch (e) {
       console.log(e);
+    }
+  };
+
+  const _addItemToShareCollection = async (nickName, shareCollectionId) => {
+    setIsEditing(false);
+    try {
+      fetch('https://api.sendwish.link:8081/item/enrollment', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          nickname: nickName,
+          collectionId: shareCollectionId,
+          itemIdList: addToShareCollection,
+        }),
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error(`${response.status} 에러발생`);
+        }
+        _getItemsFromShareCollection();
+
+        return response.json();
+      });
+      // .then(data => {
+      //   console.log('data is : ', data);
+      // });
+    } catch (e) {
+      console.log('adding item to collection failed');
+    }
+  };
+
+  const _addItemToShareList = itemId => {
+    if (addToShareCollection.includes(itemId)) {
+      tempArray = addToShareCollection;
+      for (let i = 0; i < tempArray.length; i++) {
+        if (tempArray[i] === itemId) {
+          tempArray.splice(i, 1);
+          i--;
+        }
+      }
+      setAddToShareCollection(tempArray);
+    } else {
+      tempArray = addToShareCollection;
+      tempArray.push(itemId);
+      setAddToShareCollection(tempArray);
+    }
+    console.log('쉐어 컬렉션 담기 : ', addToShareCollection);
+  };
+
+  const _deleteItemsFromCollection = async (itemId) => {
+    try {
+      fetch(`https://api.sendwish.link:8081/collection/item`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          collectionId: shareCollectionId,
+          itemIdList: [itemId],
+          nickname: nickName,
+        }),
+      }).then(response => {
+        if (response.ok) {
+          _getItemsFromCollection();
+          setDeleteList([]);
+          return;
+        }
+        throw new Error(`${response.status} 에러발생`);
+      });
+    } catch (e) {
+      console.log('items delete fail', e);
     }
   };
 
@@ -578,7 +661,9 @@ const ChatRoom = ({navigation, route}) => {
         />
       </UpperContainer>
 
-      <CollectionContainer style={{display: isFolded ? 'none' : 'flex'}}>
+      <CollectionContainer
+        style={{display: isFolded ? 'none' : 'flex'}}
+        onBackdropPress={() => setIsFolded(!isFolded)}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -609,10 +694,11 @@ const ChatRoom = ({navigation, route}) => {
                   itemId={item?.itemId}
                   onPress={() => {
                     isEditing
-                      ? _addItemToList(item?.itemId)
+                      ? _addItemToShareCollection(item?.itemId)
                       : _openUrl(item?.originUrl);
+                    console.log('!!!!!!!!!!!', item.itemId);
                   }}
-                  onLongPress={{}}
+                  onLongPress={() => _deleteItemsFromCollection(item.itemId)}
                   isEditing={isEditing}
                 />
               ))}
@@ -671,59 +757,70 @@ const ChatRoom = ({navigation, route}) => {
           </ScrollView>
           <Modal visible={chartModal}>
             <ChartModalView insets={insets}>
-              <ChartImage
-                source={{
-                  uri: 'https://postfiles.pstatic.net/MjAyMzAxMjJfMjgz/MDAxNjc0MzkxMTE1MTg5.uF_FNBj0STqnVC7o7vZ41zieBXQ5F46bVkC0MZzwPHQg.geCzzmDljeZGhjfWBBL05uwe3isSGWWMSPta0zf9Gnsg.JPEG.okrldbs/IMG_0044.jpg?type=w966',
-                }}
-                // style={{width: length * dataChart[0]?.percentage / 100}}
-              />
-              <Text
-                style={{
-                  color: theme.basicText,
-                  marginTop: 10,
-                  marginBottom: 10,
-                }}>
-                {dataChart[0]?.category + ' '}
-                {dataChart[0]?.percentage + '%'}
-              </Text>
+              <ImageModalView>
+                <ChartImage
+                  source={{
+                    uri: 'https://postfiles.pstatic.net/MjAyMzAxMjJfMjgz/MDAxNjc0MzkxMTE1MTg5.uF_FNBj0STqnVC7o7vZ41zieBXQ5F46bVkC0MZzwPHQg.geCzzmDljeZGhjfWBBL05uwe3isSGWWMSPta0zf9Gnsg.JPEG.okrldbs/IMG_0044.jpg?type=w966',
+                  }}
+                  // style={{width: length * 80 / 100}}
 
-              {/* <ChartImage
-                source={{
-                  uri: 'https://postfiles.pstatic.net/MjAyMzAxMjJfMjgz/MDAxNjc0MzkxMTE1MTg5.uF_FNBj0STqnVC7o7vZ41zieBXQ5F46bVkC0MZzwPHQg.geCzzmDljeZGhjfWBBL05uwe3isSGWWMSPta0zf9Gnsg.JPEG.okrldbs/IMG_0044.jpg?type=w966',
-                }}
-                style={{width: (length * dataChart[1]?.percentage) / 100}}
-              />
-              <Text
-                style={{
-                  color: theme.basicText,
-                  marginTop: 10,
-                  marginBottom: 10,
-                }}>
-                {dataChart[1]?.category + ' '}
-                {dataChart[1]?.percentage + '%'}
-              </Text>
-              <ChartImage
-                source={{
-                  uri: 'https://postfiles.pstatic.net/MjAyMzAxMjJfMjgz/MDAxNjc0MzkxMTE1MTg5.uF_FNBj0STqnVC7o7vZ41zieBXQ5F46bVkC0MZzwPHQg.geCzzmDljeZGhjfWBBL05uwe3isSGWWMSPta0zf9Gnsg.JPEG.okrldbs/IMG_0044.jpg?type=w966',
-                }}
-                style={{width: (length * dataChart[2]?.percentage) / 100}}
-              />
-              <Text
-                style={{
-                  color: theme.basicText,
-                  marginTop: 10,
-                  marginBottom: 10,
-                }}>
-                {dataChart[2]?.category + ' '}
-                {dataChart[2]?.percentage + '%'}
-              </Text> */}
-              <Text style={{color: theme.tintColorGreen}}>
-                친구가 가장 선호하는 {dataChart[0]?.category} 카테고리의 상품들
-              </Text>
+                  // style={{width: length * dataChart[0]?.percentage / 100}}
+                />
+                <Text
+                  style={{
+                    color: theme.basicText,
+                    marginTop: 10,
+                    marginBottom: 10,
+                  }}>
+                  {dataChart[0]?.category + ' '}
+                  {dataChart[0]?.percentage + '%'}
+                </Text>
+
+                <ChartImage
+                  source={{
+                    uri: 'https://postfiles.pstatic.net/MjAyMzAxMjJfMjgz/MDAxNjc0MzkxMTE1MTg5.uF_FNBj0STqnVC7o7vZ41zieBXQ5F46bVkC0MZzwPHQg.geCzzmDljeZGhjfWBBL05uwe3isSGWWMSPta0zf9Gnsg.JPEG.okrldbs/IMG_0044.jpg?type=w966',
+                  }}
+                  // style={{width: (length * dataChart[1]?.percentage) / 100}}
+                />
+                <Text
+                  style={{
+                    color: theme.basicText,
+                    marginTop: 10,
+                    marginBottom: 10,
+                  }}>
+                  {dataChart[1]?.category + ' '}
+                  {dataChart[1]?.percentage + '%'}
+                </Text>
+                <ChartImage
+                  source={{
+                    uri: 'https://postfiles.pstatic.net/MjAyMzAxMjJfMjgz/MDAxNjc0MzkxMTE1MTg5.uF_FNBj0STqnVC7o7vZ41zieBXQ5F46bVkC0MZzwPHQg.geCzzmDljeZGhjfWBBL05uwe3isSGWWMSPta0zf9Gnsg.JPEG.okrldbs/IMG_0044.jpg?type=w966',
+                  }}
+                  // style={{width: (length * dataChart[2]?.percentage) / 100}}
+                />
+                <Text
+                  style={{
+                    color: theme.basicText,
+                    marginTop: 10,
+                    marginBottom: 10,
+                  }}>
+                  {dataChart[2]?.category + ' '}
+                  {dataChart[2]?.percentage + '%'}
+                </Text>
+              </ImageModalView>
+              <Row>
+                <Text style={{color: theme.tintColorGreen}}>
+                  친구가 가장 선호하는 {dataChart[0]?.category} 카테고리의
+                  상품들
+                </Text>
+                <EditIcon
+                  onPress={() => setIsItemSelected(!isItemSelected)}
+                  name={isItemSelected ? 'x' : 'edit-2'}
+                />
+              </Row>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                style={{width: '95%'}}>
+                style={{width: '95%', opacity: isItemSelected ? 0.5 : 1.0}}>
                 {chartItems.error
                   ? null
                   : chartItems.map(chartitem => (
@@ -735,20 +832,38 @@ const ChatRoom = ({navigation, route}) => {
                           /\B(?=(\d{3})+(?!\d))/g,
                           ',',
                         )}
+                        isItemSelected={isItemSelected}
                         itemImage={chartitem?.imgUrl}
                         itemId={chartitem?.itemId}
                         onPress={() => {
-                          _openUrl(chartitem?.originUrl);
+                          isItemSelected
+                            ? _addItemToShareList(chartitem?.itemId)
+                            : _openUrl(chartitem?.originUrl);
                         }}
                       />
                     ))}
               </ScrollView>
-              <ChartButton
-                title={'닫기'}
-                onPress={() => {
-                  setChartModal(false), setChartItems([]);
-                }}
-              />
+              <Row>
+                <AddButton
+                  title={'추가하기'}
+                  onPress={() => {
+                    console.log('nickname:', nickName);
+                    console.log('collectionId:', shareCollectionId);
+                    console.log('itemIdList:', addToShareCollection);
+                    setChartModal(false),
+                      setIsItemSelected(!isItemSelected),
+                      setChartItems([]),
+                      _addItemToShareCollection(nickName, shareCollectionId);
+                  }}
+                />
+                <Text>' '</Text>
+                <ChartButton
+                  title={'닫기'}
+                  onPress={() => {
+                    setIsItemSelected(!isItemSelected), setChartModal(false) , setChartItems([]), setAddToShareCollection([]);
+                  }}
+                />
+              </Row>
             </ChartModalView>
           </Modal>
           <View style={{marginLeft: -30}}>

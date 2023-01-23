@@ -12,7 +12,7 @@ const Container = styled.View`
   border-radius: 10px;
   margin-bottom: 200%;
   padding: 5px;
-  margin-top: 5%;
+  margin-top: 3%;
 `;
 
 const Title = styled.Text`
@@ -23,7 +23,7 @@ const Title = styled.Text`
   color: ${({theme}) => theme.basicText};
 `;
 
-const ChartButton = ({title, onPress}) => {
+const AddButton = ({title, onPress}) => {
   return (
     <TouchableOpacity onPress={onPress}>
       <Container>
@@ -33,4 +33,4 @@ const ChartButton = ({title, onPress}) => {
   );
 };
 
-export default ChartButton;
+export default AddButton;
