@@ -351,7 +351,7 @@ const Main = ({navigation, route}) => {
               onBlur={() => setCollectionName(collectionName)}
               maxLength={10}
               onSubmitEditing={() => {
-                _makeCol(nickName, collectionName);
+                _makeCol({nickName, collectionName});
               }}
               placeholder="새 컬렉션 이름"
               returnKeyType="done"
@@ -359,7 +359,7 @@ const Main = ({navigation, route}) => {
             <Button
               title="새 컬렉션 만들기"
               onPress={() => {
-                _makeCol(nickName, collectionName);
+                _makeCol({nickName, collectionName});
               }}
             />
             <View style={{marginBottom: 20}} />

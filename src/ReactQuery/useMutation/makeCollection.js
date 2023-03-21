@@ -1,3 +1,5 @@
+import {Alert} from 'react-native';
+
 const _makeCollect = async ({nickName, collectionName}) => {
   if (collectionName === '') {
     return Alert.alert('컬렉션 이름을 입력해주세요');
